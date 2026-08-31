@@ -27,7 +27,12 @@
 ## 1. Eksekutif & Visi Produk
 
 ### 1.1 Latar Belakang & Visi
-**Intelecta** adalah entitas konsultan dan penyedia solusi teknologi informasi tingkat lanjut (*Cloud Infrastructure, Enterprise AI Engineering, Custom Software, & Cybersecurity*). Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan satu platform terpusat (**Intelecta SuperApp**) yang mengorkestrasi seluruh operasional korporat secara *end-to-end*.
+**Intelecta** adalah entitas penyedia solusi teknologi digital terdepan yang berfokus pada **3 Layanan Inti**:
+1. **Web Development** (Company Profile, High-Performance Landing Pages, E-Commerce, Custom CMS).
+2. **Mobile App Development** (Aplikasi Mobile iOS & Android menggunakan Flutter / React Native / Native).
+3. **Web App Development** (SaaS Platforms, Custom ERP/CRM, Dashboard Portals, B2B Internal Tools).
+
+Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan satu platform terpusat (**Intelecta SuperApp**) yang mengorkestrasi seluruh operasional pengerjaan proyek, komunikasi klien, dan manajemen lead secara *end-to-end*.
 
 **Intelecta SuperApp** dirancang sebagai sistem operasi bisnis (*Enterprise Operating Hub / SuperApp*) yang menggabungkan:
 1. **Omnichannel Communication Center**: Penyatuan pesan masuk & notifikasi dari Instagram Direct Message (Meta Graph API), formulir kontak & terminal pada Corporate Web, WhatsApp Business, dan internal chat.
@@ -202,11 +207,11 @@ CREATE TABLE `team_profiles` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `user_id` BIGINT UNSIGNED NOT NULL,
   `slug` VARCHAR(255) NOT NULL UNIQUE,          -- sync ke /tim/[slug]
-  `job_title` VARCHAR(255) NOT NULL,            -- e.g. "Principal AI Engineer"
+  `job_title` VARCHAR(255) NOT NULL,            -- e.g. "Senior Fullstack & WebApp Engineer"
   `tagline` VARCHAR(255) NULL,
   `bio_id` TEXT NULL,                           -- Bio Bahasa Indonesia
-  `skills_json` JSON NOT NULL,                  -- ["PyTorch", "Kubernetes", "Next.js"]
-  `certifications_json` JSON NULL,              -- [{"name": "AWS Certified Pro", "badge_url": "..."}]
+  `skills_json` JSON NOT NULL,                  -- ["React", "Laravel", "Next.js", "Flutter", "Tailwind CSS", "MySQL"]
+  `certifications_json` JSON NULL,              -- [{"name": "Meta Certified Developer", "badge_url": "..."}]
   `social_links_json` JSON NULL,                -- {"linkedin": "...", "github": "..."}
   `is_public_showcase` BOOLEAN DEFAULT TRUE,    -- Tampil di Corporate Web atau tidak
   `display_order` INT DEFAULT 0,
@@ -237,7 +242,7 @@ CREATE TABLE `projects` (
   `client_id` BIGINT UNSIGNED NOT NULL,
   `project_code` VARCHAR(50) NOT NULL UNIQUE,   -- e.g. "INTL-2026-008"
   `title` VARCHAR(255) NOT NULL,
-  `category` ENUM('ai_engineering', 'cloud_infra', 'cybersecurity', 'custom_software') NOT NULL,
+  `category` ENUM('web_development', 'mobile_app_development', 'webapp_development') NOT NULL,
   `status` ENUM('scoping', 'active_sprint', 'uat', 'maintenance', 'completed') DEFAULT 'scoping',
   `contract_value` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
   `start_date` DATE NULL,
@@ -246,7 +251,7 @@ CREATE TABLE `projects` (
   `staging_url` VARCHAR(500) NULL,
   `production_url` VARCHAR(500) NULL,
   `is_featured_case_study` BOOLEAN DEFAULT FALSE, -- Ditampilkan di Showcase Web?
-  `case_study_metrics_json` JSON NULL,            -- {"uptime": "99.99%", "perf": "+45%"}
+  `case_study_metrics_json` JSON NULL,            -- {"lighthouse_score": "98", "load_time": "0.8s"}
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE
@@ -350,20 +355,20 @@ firestore_root/
 ├── channels/                          # Collection
 │   └── {channelId}/                   # Doc (e.g., "proj_INTL-2026-008" atau "lead_ig_99218")
 │       ├── type: "project" | "direct" | "lead_omnichannel"
-│       ├── name: "FinTech Core Migration"
+│       ├── name: "Logistics WebApp & Driver Mobile App"
 │       ├── participants: ["uuid_user_1", "uuid_user_2", "client_uuid"]
-│       ├── last_message: "Patch deployment v2.1 sukses dilaksanakan."
+│       ├── last_message: "Build APK Android v1.2 sudah diunggah ke portal."
 │       ├── last_message_at: Timestamp
-│       ├── unread_counts: { "uuid_user_1": 0, "client_uuid": 2 }
+│       ├── unread_counts: { "uuid_user_1": 0, "client_uuid": 1 }
 │       │
 │       └── messages/                  # Sub-collection
 │           └── {messageId}/           # Doc
 │               ├── sender_id: "uuid_user_1"
-│               ├── sender_name: "Rian (Principal Architect)"
+│               ├── sender_name: "Rian (Lead Fullstack)"
 │               ├── sender_avatar: "https://..."
-│               ├── text: "Semua service Kafka sudah green."
+│               ├── text: "Semua endpoint REST API autentikasi dan dashboard sudah siap di-review."
 │               ├── attachments: [
-│               │     { "type": "image", "url": "https://...", "filename": "chart.png" }
+│               │     { "type": "image", "url": "https://...", "filename": "preview.png" }
 │               │   ]
 │               ├── is_internal_note: false  # Fitur pesan rahasia khusus internal dev
 │               └── created_at: Timestamp
@@ -503,10 +508,10 @@ Antarmuka SuperApp mengadopsi bahasa visual yang selaras dengan *Intelecta Corpo
   "timestamp": 1788172800,
   "data": {
     "sender_name": "Budi Santoso",
-    "sender_email": "budi@enterprisebank.co.id",
-    "company": "Bank Nusantara Mandiri",
-    "service_interest": "ai_engineering",
-    "message": "Kami membutuhkan integrasi LLM lokal on-premise untuk analisis dokumen kepatuhan kredit.",
+    "sender_email": "budi@perusahaanlogistik.co.id",
+    "company": "PT Nusantara Logistik Mandiri",
+    "service_interest": "webapp_development",
+    "message": "Kami membutuhkan pengembangan sistem Web App Dashboard Monitoring & Mobile App kurir terintegrasi.",
     "source_ip": "103.28.12.44",
     "user_agent": "Mozilla/5.0 ... Chrome/128.0"
   },
