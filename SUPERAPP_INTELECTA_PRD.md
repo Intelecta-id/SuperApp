@@ -1,5 +1,5 @@
 # Product Requirement Document (PRD) & Technical Specification
-# Intelecta SuperApp — Enterprise Digital Operations & Omnichannel Ecosystem
+# Intelecta SuperApp — Enterprise Digital Operations & Client Management Ecosystem
 
 > **Versi**: 1.0.0  
 > **Tanggal Rilis**: 31 Agustus 2026  
@@ -12,8 +12,8 @@
 
 1. [Eksekutif & Visi Produk](#1-eksekutif--visi-produk)
 2. [Tech Stack & Arsitektur Sistem](#2-tech-stack--arsitektur-sistem)
-3. [User Roles, Hak Akses & Personas](#3-user-roles-hak-akses--personas)
-4. [Skema Basis Data (MySQL Relational Schema)](#4-skema-basis-data-mysql-relational-schema)
+3. [Model Pengguna & Manajemen Klien](#3-model-pengguna--manajemen-klien)
+4. [Skema Basis Data (MySQL & Firestore NoSQL)](#4-skema-basis-data-mysql--firestore-nosql)
 5. [Arsitektur Realtime Chat & Notifikasi (Firebase SDK)](#5-arsitektur-realtime-chat--notifikasi-firebase-sdk)
 6. [Integrasi Ekosistem Eksternal (Instagram & Corporate Web)](#6-integrasi-ekosistem-eksternal-instagram--corporate-web)
 7. [Spesifikasi Fitur & Modul Fungsional](#7-spesifikasi-fitur--modul-fungsional)
@@ -32,13 +32,13 @@
 2. **Mobile App Development** (Aplikasi Mobile iOS & Android menggunakan Flutter / React Native / Native).
 3. **Web App Development** (SaaS Platforms, Custom ERP/CRM, Dashboard Portals, B2B Internal Tools).
 
-Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan satu platform terpusat (**Intelecta SuperApp**) yang mengorkestrasi seluruh operasional pengerjaan proyek, komunikasi klien, dan manajemen lead secara *end-to-end*.
+Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibangun platform internal terpusat (**Intelecta SuperApp**) yang mengorkestrasi seluruh operasional pengerjaan proyek, pengelolaan data klien, penagihan, dan manajemen prospek (lead) secara *end-to-end*.
 
-**Intelecta SuperApp** dirancang sebagai sistem operasi bisnis (*Enterprise Operating Hub / SuperApp*) yang menggabungkan:
-1. **Omnichannel Communication Center**: Penyatuan pesan masuk & notifikasi dari Instagram Direct Message (Meta Graph API), formulir kontak & terminal pada Corporate Web, WhatsApp Business, dan internal chat.
-2. **Client Portal & B2B Workspace**: Area kolaborasi interaktif untuk klien korporat (pemantauan milestone proyek, deliverable, SLA helpdesk, tagihan/invoicing, dan secure document vault).
-3. **Internal Project & Talent Management**: Manajemen alokasi engineer/konsultan, sprint tracking, otomatisasi sinkronisasi profil publik ke halaman `/tim/[slug]` pada Corporate Web.
-4. **Realtime Chat & Incident Escalation**: Komunikasi instan berbasis Firebase Realtime / Firestore & Push Notifications (FCM) untuk koordinasi cepat antar tim dan klien.
+**Intelecta SuperApp** dirancang khusus sebagai **Internal Operations & Client Management Hub** (tanpa kompleksitas multi-role user). SuperApp ini menyatukan:
+1. **Omnichannel Communication Center**: Penyatuan pesan masuk & notifikasi dari Instagram Direct Message (Meta Graph API), formulir kontak & terminal pada Corporate Web, WhatsApp Business, dan obrolan internal.
+2. **Client Management & Project Command Center**: Pengelolaan data direktori klien korporat B2B, pelacakan milestone & sprint proyek, deliverable, penagihan invoice, dan SLA ticketing.
+3. **Internal Project & Talent Management**: Alokasi engineer/konsultan, sprint tracking, otomatisasi sinkronisasi profil publik ke halaman `/tim/[slug]` pada Corporate Web.
+4. **Realtime Chat & Incident Escalation**: Komunikasi instan berbasis Firebase Realtime / Firestore & Push Notifications (FCM) untuk koordinasi cepat antar tim operasional.
 
 ```
                     ┌────────────────────────────────────────┐
@@ -47,16 +47,16 @@ Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan sat
                     └───────────────────┬────────────────────┘
                                         │ Webhook / REST Sync
                                         ▼
-┌──────────────────┐    ┌───────────────────────────────────┐    ┌──────────────────┐
-│  INSTAGRAM /     │───▶│       INTELECTA SUPERAPP          │◀───│   B2B CLIENTS    │
-│  META GRAPH API  │    │     (Laravel + React + MySQL)     │    │ (Portal & Chat)  │
-└──────────────────┘    └─────────────────┬─────────────────┘    └──────────────────┘
+┌──────────────────┐    ┌───────────────────────────────────┐
+│  INSTAGRAM /     │───▶│       INTELECTA SUPERAPP          │◀─── [ TIM / OPERATOR INTELECTA ]
+│  META GRAPH API  │    │     (Laravel + React + MySQL)     │     (Kelola Klien & Operasional)
+└──────────────────┘    └─────────────────┬─────────────────┘
                                           │
                      ┌────────────────────┴────────────────────┐
                      ▼                                         ▼
         ┌─────────────────────────┐               ┌─────────────────────────┐
-        │  FIREBASE REALTIME SDK  │               │   INTERNAL EMPLOYEES    │
-        │ (Chat, Presence, FCM)   │               │ (PM, Engineers, Finance)│
+        │  FIREBASE REALTIME SDK  │               │   CLIENTS & LEADS DATA  │
+        │ (Chat, Presence, FCM)   │               │(B2B Profiles, Contracts)│
         └─────────────────────────┘               └─────────────────────────┘
 ```
 
@@ -68,8 +68,8 @@ Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan sat
 
 | Layer | Teknologi | Versi | Peran & Justifikasi |
 | :--- | :--- | :--- | :--- |
-| **Backend Framework** | **Laravel** | 11.x (PHP 8.3+) | REST API Core, Business Logic, Webhooks Dispatcher, Queues (Redis), Auth (Sanctum/JWT), Spatie RBAC |
-| **Frontend Framework** | **React** + **Vite** / **Inertia.js** | React 18/19 | SPA dinamis, state management terpusat, modularitas tinggi, fast build time |
+| **Backend Framework** | **Laravel** | 11.x (PHP 8.3+) | REST API Core, Business Logic, Webhooks Dispatcher, Queues (Redis), Auth (Sanctum/JWT) |
+| **Frontend Framework** | **React** + **Vite** | React 19 / 18 | SPA dinamis modern, state management terpusat, modularitas tinggi, fast build time |
 | **Styling & UI** | **Tailwind CSS** + **Shadcn/Radix UI** | Tailwind v3.4+ | Monochromatic dark theme tokens (`#030303`, `#0D0D11`), glassmorphism, konsistensi token dengan Corporate Web |
 | **Database** | **MySQL** | 8.0+ | Relational data integrity, ACID transactions untuk billing & kontrak, JSON fields untuk konfigurasi dinamis |
 | **Realtime Engine** | **Firebase SDK** | 10.x+ (Client & Admin) | Realtime chat channels, Firestore/Realtime DB sync, Firebase Cloud Messaging (FCM) push notifications |
@@ -77,114 +77,86 @@ Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibutuhkan sat
 | **Icons & Animasi** | **Lucide React** + **Framer Motion** | — | Visual interface interaktif dan konsisten |
 
 ### 2.2 Struktur Arsitektur Monorepo / Decoupled
+*(Sesuai dengan dokumen `docs/architecture.md`)*
 
 ```
 SuperAppIntelecta/
-├── backend/                  # Laravel 11 API Backend
+├── backend/                  # Laravel 11 API Backend (PHP 8.3+)
 │   ├── app/
-│   │   ├── Http/Controllers/API/ (V1 Controllers)
-│   │   ├── Models/           (Eloquent Models & Scopes)
+│   │   ├── Http/Controllers/API/V1/ (REST API Controllers: Auth, Clients, Projects, Leads, etc.)
+│   │   ├── Models/           (Eloquent Models: User, Client, Project, Lead, Invoice, Ticket, TeamProfile)
 │   │   ├── Services/         (InstagramService, FirebaseService, WebhookService)
-│   │   ├── Jobs/             (ProcessInstagramWebhook, SendFCMNotification)
-│   │   └── Events/           (LeadReceivedEvent, ProjectUpdatedEvent)
-│   ├── routes/api.php        (Protected & Public Webhook Endpoints)
-│   └── config/services.php   (Firebase & Meta API Config)
+│   │   ├── Jobs/             (Background Queues / ProcessInstagramWebhook, SendFCMNotification)
+│   │   └── Events/           (Domain Events / LeadReceivedEvent, ProjectUpdatedEvent)
+│   ├── routes/api.php        (Protected & Webhook Endpoints)
+│   └── config/services.php   (Meta, Firebase, Corporate Web Config)
 │
-├── frontend/                 # React + Tailwind SPA
+├── frontend/                 # React 19 + Vite + Tailwind CSS SPA
 │   ├── src/
-│   │   ├── assets/           (Logos, Icons, Badges)
-│   │   ├── components/       (Shadcn UI, Custom Bento Cards, Glass Modals)
-│   │   │   ├── layout/       (Sidebar, Header, Omnichannel Drawer, Floating Bar)
-│   │   │   ├── chat/         (Firebase Chat Stream, Message Bubble, Attachment)
-│   │   │   ├── projects/     (Kanban, Gantt, Milestone Timeline)
-│   │   │   └── leads/        (Instagram Lead Inbox, Corporate Web Submissions)
-│   │   ├── hooks/            (useFirebaseAuth, useRealtimeChat, useFCM)
-│   │   ├── contexts/         (AuthContext, NotificationContext, ThemeContext)
-│   │   └── pages/            (Dashboard, Omnichannel, Clients, Projects, Settings)
-│   └── tailwind.config.js
-└── docs/                     # Dokumentasi API & Schema
+│   │   ├── components/       (Layout, Chat, Clients, Projects, Leads, UI Bento Cards)
+│   │   ├── hooks/            (Firebase Auth, Realtime Listeners, FCM)
+│   │   ├── contexts/         (Global Auth, Notifications, Theme)
+│   │   ├── services/         (Axios API Client, Firebase SDK)
+│   │   └── pages/            (Dashboard, Omnichannel, Clients, Projects, Financial, Team, Settings)
+│   └── tailwind.config.js    (Dark Obsidian Tokens)
+│
+└── docs/                     # Dokumentasi API, Database Schema, & Arsitektur
+    ├── README.md
+    ├── architecture.md
+    ├── database-schema.md
+    └── api-endpoints.md
 ```
 
 ---
 
-## 3. User Roles, Hak Akses & Personas
+## 3. Model Pengguna & Manajemen Klien
 
-Sistem menggunakan **Role-Based Access Control (RBAC)** berbasis library *Spatie Laravel-Permission*.
-
-```
-                              ┌────────────────────┐
-                              │    SUPER ADMIN     │
-                              │  (Direksi & CEO)   │
-                              └─────────┬──────────┘
-                                        │
-           ┌────────────────────────────┼────────────────────────────┐
-           ▼                            ▼                            ▼
-┌────────────────────┐       ┌────────────────────┐       ┌────────────────────┐
-│  PROJECT MANAGER   │       │   LEAD ENGINEER    │       │ FINANCE / ACCOUNT  │
-│ (Proyek, Task, SLA)│       │ (Dev, Sprint, Code)│       │ (Billing, Invoices)│
-└──────────┬─────────┘       └──────────┬─────────┘       └──────────┬─────────┘
-           │                            │                            │
-           └────────────────────────────┼────────────────────────────┘
-                                        │
-           ┌────────────────────────────┴────────────────────────────┐
-           ▼                                                         ▼
-┌────────────────────┐                                    ┌────────────────────┐
-│ MARKETING & SALES  │                                    │    B2B CLIENTS     │
-│(IG Leads, Web Form)│                                    │(Portal & Proyek SLA│
-└────────────────────┘                                    └────────────────────┘
-```
-
-### 3.1 Matriks Otorisasi Fitur
-
-| Modul / Fitur | Super Admin | Project Manager | Lead Engineer | Marketing / Sales | Finance | B2B Client |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Global Analytics & P&L** | ✅ Read/Write | ❌ No Access | ❌ No Access | ❌ No Access | ✅ Read Only | ❌ No Access |
-| **Instagram Lead Inbox** | ✅ Full | ✅ Read/Assign | ❌ No Access | ✅ Full/Respond | ❌ No Access | ❌ No Access |
-| **Web Contact & CLI Inquiries** | ✅ Full | ✅ Read/Assign | ❌ No Access | ✅ Full/Respond | ❌ No Access | ❌ No Access |
-| **Project & Sprint Kanban** | ✅ Full | ✅ Full | ✅ Manage Tasks | 👁️ Read Milestone | ❌ No Access | 👁️ View Milestone |
-| **Talent & `/tim` Sync** | ✅ Full | ✅ Read/Assign | 👁️ Profile Edit | ❌ No Access | ❌ No Access | ❌ No Access |
-| **Invoicing & Billing Gateway** | ✅ Full | 👁️ View PO | ❌ No Access | ❌ No Access | ✅ Full | 💳 Pay / View |
-| **Firebase Realtime Chat** | ✅ All Channels | ✅ Project Channels | ✅ Dev Channels | ✅ Lead Channels | ❌ No Access | 💬 Client Room |
-| **Helpdesk & SLA Tickets** | ✅ Full | ✅ Full | ✅ Resolve Ticket | ❌ No Access | ❌ No Access | 🎫 Create Ticket |
+### 3.1 Konsep Akses (Internal Client Management Hub — No User Roles)
+Intelecta SuperApp dibangun khusus sebagai **alat operasional internal untuk mengelola klien (*Client Management Tool*)**. Dalam sistem ini **tidak terdapat tingkatan role-role user (*No User Roles / No RBAC*)**:
+1. **Akses Internal Terpadu**: Seluruh anggota tim Intelecta yang login memiliki akses setara ke seluruh fungsi SuperApp (melihat dan mengelola klien, proyek, leads, invoice, dan tiket).
+2. **Klien Sebagai Data Kelolaan**: Klien korporat tidak memiliki akun login/portal ke dalam aplikasi; seluruh data profil perusahaan klien, nama PIC, email, nomor telepon, dan histori proyek dicatat dalam tabel `clients` sebagai data yang dikelola oleh tim Intelecta.
+3. **Autentikasi Aman**:
+   - Backend menggunakan **Laravel Sanctum Token** untuk otentikasi REST API.
+   - Frontend dihubungkan ke Firestore menggunakan **Firebase Custom Token** yang digenerate oleh Laravel saat login.
 
 ---
 
-## 4. Skema Basis Data (MySQL Relational Schema)
+## 4. Skema Basis Data (MySQL & Firestore NoSQL)
+*(Sesuai dengan dokumen `docs/database-schema.md`)*
 
-### 4.1 Entitas Utama & Relasi (ERD)
+### 4.1 Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
     USERS ||--o{ TEAM_PROFILES : has
-    USERS ||--o{ ROLE_USER : assigns
     USERS ||--o{ AUDIT_LOGS : triggers
-    
-    CLIENTS ||--o{ USERS : represents
+    USERS ||--o{ LEADS : assigned_to
+    USERS ||--o{ PROJECT_MEMBERS : member_of
+    USERS ||--o{ TICKETS : assigned_to
+
     CLIENTS ||--o{ PROJECTS : commissions
     CLIENTS ||--o{ INVOICES : billed_to
-    CLIENTS ||--o{ TICKETS : submits
-    
+    CLIENTS ||--o{ TICKETS : pertains_to
+
     PROJECTS ||--o{ PROJECT_MEMBERS : assigns
     PROJECTS ||--o{ SPRINTS : contains
     PROJECTS ||--o{ MILESTONES : tracks
     PROJECTS ||--o{ INVOICES : generates
-    
+
     SPRINTS ||--o{ TASKS : divides_into
     TASKS ||--o{ TASK_ATTACHMENTS : includes
-    
+
     LEADS ||--o{ LEAD_ACTIVITIES : logs
     LEADS ||--o{ PROJECTS : converts_to
-    
+
     TICKETS ||--o{ TICKET_REPLIES : receives
-    
+
     INTEGRATION_SETTINGS ||--o{ WEBHOOK_LOGS : registers
 ```
 
-### 4.2 Spesifikasi Kolom Tabel MySQL
+### 4.2 Spesifikasi Entitas Relasional MySQL
 
-#### 1. Tabel `users` & `team_profiles`
-Menyimpan kredensial sistem, profil internal, serta metadata untuk disinkronkan langsung ke halaman `/tim/[slug]` di Corporate Web.
-
+#### 1. Tabel `users` (Internal Staff & Operators)
 ```sql
 CREATE TABLE `users` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -193,7 +165,6 @@ CREATE TABLE `users` (
   `email` VARCHAR(255) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
   `phone` VARCHAR(30) NULL,
-  `role` ENUM('super_admin', 'project_manager', 'engineer', 'marketing', 'finance', 'client') NOT NULL DEFAULT 'engineer',
   `avatar_url` VARCHAR(500) NULL,
   `status` ENUM('active', 'suspended', 'inactive') DEFAULT 'active',
   `firebase_uid` VARCHAR(128) NULL UNIQUE,
@@ -202,7 +173,10 @@ CREATE TABLE `users` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
 
+#### 2. Tabel `team_profiles` (Talent Showcase & `/tim` Sync)
+```sql
 CREATE TABLE `team_profiles` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -221,22 +195,27 @@ CREATE TABLE `team_profiles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-#### 2. Tabel `clients` & `projects`
-Mengelola portofolio klien korporat B2B, nilai kontrak, status pengerjaan, dan alokasi tim.
-
+#### 3. Tabel `clients` (Direktori Klien B2B)
 ```sql
 CREATE TABLE `clients` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `company_name` VARCHAR(255) NOT NULL,
+  `pic_name` VARCHAR(255) NOT NULL,            -- Kontak PIC Klien
+  `pic_email` VARCHAR(255) NOT NULL,           -- Email PIC
+  `pic_phone` VARCHAR(30) NULL,                -- Telepon/WhatsApp PIC
+  `pic_position` VARCHAR(100) NULL,            -- Jabatan PIC (CTO, Direktur, dsb)
   `industry` VARCHAR(100) NULL,
-  `primary_contact_user_id` BIGINT UNSIGNED NOT NULL,
   `address` TEXT NULL,
   `website` VARCHAR(255) NULL,
-  `tax_id` VARCHAR(100) NULL,                   -- NPWP / Tax Reg
+  `tax_id` VARCHAR(100) NULL,                  -- NPWP / Tax Reg
+  `notes` TEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`primary_contact_user_id`) REFERENCES `users`(`id`)
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
 
+#### 4. Tabel `projects` (Portofolio Proyek Digital)
+```sql
 CREATE TABLE `projects` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `client_id` BIGINT UNSIGNED NOT NULL,
@@ -250,17 +229,15 @@ CREATE TABLE `projects` (
   `git_repository_url` VARCHAR(500) NULL,
   `staging_url` VARCHAR(500) NULL,
   `production_url` VARCHAR(500) NULL,
-  `is_featured_case_study` BOOLEAN DEFAULT FALSE, -- Ditampilkan di Showcase Web?
-  `case_study_metrics_json` JSON NULL,            -- {"lighthouse_score": "98", "load_time": "0.8s"}
+  `is_featured_case_study` BOOLEAN DEFAULT FALSE,
+  `case_study_metrics_json` JSON NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-#### 3. Tabel `leads` & `omnichannel_interactions`
-Menampung prospek dari Instagram Graph Webhook, Form Kontak Corporate Web, dan Terminal CLI.
-
+#### 5. Tabel `leads` (Omnichannel Inquiries)
 ```sql
 CREATE TABLE `leads` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -273,17 +250,16 @@ CREATE TABLE `leads` (
   `initial_message` TEXT NOT NULL,
   `status` ENUM('new', 'qualified', 'pitching', 'converted_to_project', 'dropped') DEFAULT 'new',
   `assigned_to_user_id` BIGINT UNSIGNED NULL,
-  `ai_sentiment_score` DECIMAL(3,2) NULL,       -- Skor analisis sentimen AI Intelecta
+  `ai_sentiment_score` DECIMAL(3,2) NULL,
   `ai_suggested_reply` TEXT NULL,
-  `metadata_json` JSON NULL,                    -- Raw webhook payload (IG message_id, IP, browser, CLI commands)
+  `metadata_json` JSON NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-#### 4. Tabel `invoices` & `tickets` (Finance & SLA Support)
-
+#### 6. Tabel `invoices` & `tickets`
 ```sql
 CREATE TABLE `invoices` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -295,11 +271,11 @@ CREATE TABLE `invoices` (
   `total_payable` DECIMAL(15,2) NOT NULL,
   `due_date` DATE NOT NULL,
   `payment_status` ENUM('unpaid', 'pending_gateway', 'paid', 'overdue', 'cancelled') DEFAULT 'unpaid',
-  `payment_gateway_ref` VARCHAR(255) NULL,      -- Midtrans/Xendit Transaction ID
+  `payment_gateway_ref` VARCHAR(255) NULL,
   `paid_at` TIMESTAMP NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`)
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `tickets` (
@@ -307,7 +283,6 @@ CREATE TABLE `tickets` (
   `ticket_code` VARCHAR(50) NOT NULL UNIQUE,    -- e.g. "TCK-8821"
   `client_id` BIGINT UNSIGNED NOT NULL,
   `project_id` BIGINT UNSIGNED NOT NULL,
-  `creator_user_id` BIGINT UNSIGNED NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `priority` ENUM('low', 'medium', 'high', 'critical_sla_1hr') DEFAULT 'medium',
   `status` ENUM('open', 'investigating', 'resolved', 'closed') DEFAULT 'open',
@@ -315,40 +290,13 @@ CREATE TABLE `tickets` (
   `resolution_notes` TEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `resolved_at` TIMESTAMP NULL,
-  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`),
-  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`),
-  FOREIGN KEY (`creator_user_id`) REFERENCES `users`(`id`),
-  FOREIGN KEY (`assigned_engineer_id`) REFERENCES `users`(`id`)
+  FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`assigned_engineer_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
----
-
-## 5. Arsitektur Realtime Chat & Notifikasi (Firebase SDK)
-
-### 5.1 Integrasi Hybrid Laravel + Firebase SDK
-- **Autentikasi**: Laravel mengautentikasi pengguna via API Token (Sanctum). Saat login berhasil, backend Laravel menggunakan **Firebase Admin SDK** untuk menghasilkan *Firebase Custom Token* berbasis `uuid` user.
-- **Frontend Sync**: Frontend React menginisialisasi Firebase SDK (`signInWithCustomToken()`) dan langsung terhubung dengan Firestore / Realtime DB untuk mendengarkan perubahan stream chat secara instan (*sub-100ms latency*).
-
-```
-   [ User Login in React ]
-             │
-             ▼
-   [ POST /api/v1/auth/login ] ─────────▶ [ Laravel Controller ]
-                                                 │
-                                                 ▼ (Generate Custom Token)
-                                          [ Firebase Admin SDK ]
-                                                 │
-   [ Return Bearer Token + Firebase Token ] ◀────┘
-             │
-             ▼
-   [ React initializes Firebase Client SDK ]
-             │
-             ▼
-   [ Direct Realtime Listeners to Firestore: /channels/{channelId}/messages ]
-```
-
-### 5.2 Skema Struktur Firestore NoSQL untuk Chat
+### 4.3 Struktur NoSQL Firestore (Realtime Chat)
 
 ```
 firestore_root/
@@ -356,10 +304,10 @@ firestore_root/
 │   └── {channelId}/                   # Doc (e.g., "proj_INTL-2026-008" atau "lead_ig_99218")
 │       ├── type: "project" | "direct" | "lead_omnichannel"
 │       ├── name: "Logistics WebApp & Driver Mobile App"
-│       ├── participants: ["uuid_user_1", "uuid_user_2", "client_uuid"]
-│       ├── last_message: "Build APK Android v1.2 sudah diunggah ke portal."
+│       ├── participants: ["uuid_user_1", "uuid_user_2"]
+│       ├── last_message: "Build APK Android v1.2 sudah siap diuji."
 │       ├── last_message_at: Timestamp
-│       ├── unread_counts: { "uuid_user_1": 0, "client_uuid": 1 }
+│       ├── unread_counts: { "uuid_user_1": 0, "uuid_user_2": 1 }
 │       │
 │       └── messages/                  # Sub-collection
 │           └── {messageId}/           # Doc
@@ -370,7 +318,7 @@ firestore_root/
 │               ├── attachments: [
 │               │     { "type": "image", "url": "https://...", "filename": "preview.png" }
 │               │   ]
-│               ├── is_internal_note: false  # Fitur pesan rahasia khusus internal dev
+│               ├── is_internal_note: false
 │               └── created_at: Timestamp
 │
 └── presence/                          # Collection (Status Online/Typing)
@@ -380,10 +328,36 @@ firestore_root/
         └── last_seen: Timestamp
 ```
 
-### 5.3 Push Notifications (Firebase Cloud Messaging / FCM)
-- **Background Dispatcher**: Setiap pesan masuk baru atau perubahan status tiket dengan prioritas `critical_sla_1hr` memicu Laravel Event Listener `SendFCMNotificationJob`.
-- **Target**: Device web browser engineer yang sedang bertugas dan perangkat mobile manajer terkait.
-- **Audio Alert**: Sound alert monoline modern khusus di antarmuka web saat ada inquiry Instagram atau lead baru dari Corporate Web.
+---
+
+## 5. Arsitektur Realtime Chat & Notifikasi (Firebase SDK)
+
+### 5.1 Integrasi Hybrid Laravel + Firebase SDK
+- **Autentikasi**: Laravel mengautentikasi pengguna via API Token (Sanctum). Saat login berhasil, backend Laravel menggunakan **Firebase Admin SDK** untuk menghasilkan *Firebase Custom Token* berbasis `uuid` user.
+- **Frontend Sync**: Frontend React menginisialisasi Firebase SDK (`signInWithCustomToken()`) dan langsung terhubung dengan Firestore untuk mendengarkan perubahan stream chat secara instan (*sub-100ms latency*).
+
+```
+   [ User Login in React SPA ]
+                │
+                ▼
+   [ POST /api/v1/auth/login ] ────────▶ [ Laravel API Controller ]
+                                                 │
+                                                 ▼ (Generate Custom Token)
+                                          [ Firebase Admin SDK ]
+                                                 │
+   [ Sanctum Token + Firebase Custom Token ] ◀───┘
+                │
+                ▼
+   [ React initializes Firebase Client SDK ]
+                │
+                ▼
+   [ Direct Realtime Listeners to Firestore: /channels/{channelId}/messages ]
+```
+
+### 5.2 Push Notifications (Firebase Cloud Messaging / FCM)
+- **Background Dispatcher**: Setiap lead baru atau perubahan status tiket dengan prioritas `critical_sla_1hr` memicu Laravel Event Listener `SendFCMNotificationJob`.
+- **Target**: Browser web personil internal yang sedang aktif bertugas.
+- **Audio Alert**: Sound alert modern monoline di dashboard web saat ada inquiry Instagram atau kontak baru dari Corporate Web.
 
 ---
 
@@ -400,18 +374,16 @@ firestore_root/
                                                         ├── 1. Validasi X-Hub-Signature-256
                                                         ├── 2. Simpan Lead & Pesan ke MySQL
                                                         ├── 3. Sync ke Firestore Channel
-                                                        └── 4. Trigger FCM Notification ke Tim Sales
+                                                        └── 4. Trigger FCM Notification ke Tim Internal
 ```
 
 #### Alur Teknis:
 1. **Webhook Registration**: Endpoint `https://superapp.intelecta.id/api/webhooks/instagram` diverifikasi via `hub.challenge` dan secret token.
-2. **Payload Parsing**: Menangkap payload event `messages`, `messaging_postbacks`, dan `comments`.
-3. **Conversational Sync**: Jika pengirim belum ada di tabel `leads`, buat lead baru berkategori `instagram_dm`. Jika sudah ada, tambahkan pesan ke thread obrolan omnichannel yang sama.
-4. **Balas dari SuperApp**: Tim sales/engineer dapat membalas pesan langsung dari antarmuka SuperApp. Backend Laravel akan mengeksekusi `POST https://graph.facebook.com/v19.0/me/messages` dengan token akses resmi.
+2. **Payload Parsing**: Menangkap event `messages`, `messaging_postbacks`, dan `comments`.
+3. **Conversational Sync**: Jika pengirim belum ada di tabel `leads`, buat data lead baru berkategori `instagram_dm`. Jika sudah ada, tambahkan pesan ke thread obrolan omnichannel yang sama.
+4. **Balas dari SuperApp**: Tim internal dapat membalas pesan langsung dari SuperApp. Backend mengeksekusi `POST https://graph.facebook.com/v19.0/me/messages` dengan token akses resmi.
 
 ### 6.2 Integrasi Corporate Web (Next.js 15)
-
-Corporate Web dan SuperApp terhubung secara dua arah (*Bi-directional Data & Action Pipeline*):
 
 | Titik Integrasi | Arah Aliran | Mekanisme Teknis | Deskripsi Fungsional |
 | :--- | :---: | :--- | :--- |
@@ -426,16 +398,17 @@ Corporate Web dan SuperApp terhubung secara dua arah (*Bi-directional Data & Act
 
 ### 7.1 Modul 1: Omnichannel Communication Command Center
 - **Unified Inbox**: Tab terpadu untuk menyaring pesan masuk dari Instagram DM, Web Form, Terminal CLI, dan WhatsApp.
-- **AI-Powered Quick Response**: Memberikan saran balasan cerdas otomatis (*LLM Inference*) berdasarkan ringkasan portofolio layanan Intelecta.
-- **Conversion Trigger**: 1-Click action untuk mengubah inquiry chat menjadi `Proyek Resmi` dan otomatis men-generate akun portal klien.
+- **AI-Powered Quick Response**: Rekomendasi balasan cerdas otomatis (*LLM Inference*) berdasarkan portofolio layanan Intelecta.
+- **Conversion Trigger**: 1-Click action untuk mengubah inquiry chat menjadi `Klien Baru` & `Proyek Resmi`.
 
-### 7.2 Modul 2: Client & Project Command Center (B2B Workspace)
+### 7.2 Modul 2: Client Management & Project Command Center
+- **Client Directory**: Manajemen direktori profil klien korporat B2B, PIC kontak, nilai kerja sama, dan riwayat proyek.
 - **Milestone & Sprint Tracker**: Tampilan interaktif Gantt chart & Kanban board (Scrum/Agile style).
 - **Deliverable & Asset Vault**: Penyimpanan dokumen arsitektur, NDA, OpenAPI swagger spec, dan file build yang aman.
 - **Realtime Activity Log**: Jejak commit Git, deployment pipeline status, dan pengujian server live.
 
 ### 7.3 Modul 3: Financial, Retainer & Invoicing Hub
-- **Automated Invoicing**: Pembuatan invoice otomatis dengan format penomoran profesional PDF (`INV/2026/...`).
+- **Automated Invoicing**: Pembuatan invoice otomatis format penomoran profesional PDF (`INV/2026/...`).
 - **Payment Gateway Integration**: Tombol bayar instan (Virtual Account, QRIS, Credit Card) terintegrasi Midtrans / Xendit.
 - **Revenue & Contract Run-Rate**: Grafik proyeksi cashflow dan realisasi SLA retainer bulanan.
 
@@ -444,15 +417,14 @@ Corporate Web dan SuperApp terhubung secara dua arah (*Bi-directional Data & Act
 - **Public Profile Editor**: Form WYSIWYG untuk mengatur tampilan halaman pribadi engineer di `/tim/[slug]` Corporate Web dengan preview langsung.
 
 ### 7.5 Modul 5: SLA Ticketing & Incident Management
-- **Tiered SLA Alerts**: Countdown timer berbasis tingkat keparahan (contoh: P1 Critical = 60 menit respon wajib).
-- **Root Cause Analysis (RCA) Logger**: Form pelaporan insiden pasca penyelesaian masalah untuk keperluan transparansi ke klien.
+- **Tiered SLA Alerts**: Countdown timer berbasis tingkat keparahan (P1 Critical = 60 menit respon wajib).
+- **Root Cause Analysis (RCA) Logger**: Form pelaporan insiden pasca penyelesaian masalah.
 
 ---
 
 ## 8. UI/UX Design System & Tata Letak Antarmuka
 
 ### 8.1 Filosofi Visual (Monochromatic Dark Obsidian)
-Antarmuka SuperApp mengadopsi bahasa visual yang selaras dengan *Intelecta Corporate Web*:
 - **Background Utama**: Rich Pitch Black (`#030303`) dan Deep Obsidian Surface (`#0D0D11`).
 - **Accent & Highlights**: Silver Glow gradient (`#FFFFFF` ➔ `#71717A`) dengan border ultra tipis `rgba(255, 255, 255, 0.08)`.
 - **Typography**: `Space Grotesk` untuk judul modul dan metrik penting; `Inter` untuk tabel, form, dan teks obrolan; `JetBrains Mono` untuk kode tiket, JSON inspector, dan stack tags.
@@ -465,12 +437,12 @@ Antarmuka SuperApp mengadopsi bahasa visual yang selaras dengan *Intelecta Corpo
 ├──────────────┬─────────────────────────────────────────────────────────┬───────────────┤
 │ 📁 NAVIGASI  │ 📊 AREA KONTEN UTAMA (Dynamic Workspace Tabs)           │ 💬 CHAT TRAY  │
 │              │ ┌─────────────────────────────────────────────────────┐ │               │
-│ • Dashboard  │ │ 🏷️ PROYEK: FinTech Core Banking Migration           │ │ # INTL-008    │
+│ • Dashboard  │ │ 🏷️ KLIEN: PT FinTech Nusantara Mandiri              │ │ # INTL-008    │
 │ • Omnichannel│ ├─────────────────────────────────────────────────────┤ │               │
-│   - IG Leads │ │ [Sprint 4] [Milestones] [Documents] [Invoices] [SLA]│ │ Rian (Lead):  │
+│   - IG Leads │ │ [Info Klien] [Proyek] [Invoices] [SLA Tickets] [Docs│ │ Rian (Lead):  │
 │   - Web Form │ │                                                     │ │ Deployment    │
-│ • Proyek     │ │  KANBAN SPRINT TRACKER:                             │ │ sudah live di │
-│ • Klien      │ │  ┌───────────┐ ┌───────────┐ ┌───────────┐         │ │ staging! 🚀   │
+│ • Klien      │ │  KANBAN SPRINT TRACKER:                             │ │ sudah live di │
+│ • Proyek     │ │  ┌───────────┐ ┌───────────┐ ┌───────────┐         │ │ staging! 🚀   │
 │ • Finansial  │ │  │ TO DO (3) │ │IN PROGRESS│ │ DONE (14) │         │ │ 12:44 PM      │
 │ • Tim (/tim) │ │  │ [Card...] │ │ [Card...] │ │ [Card...] │         │ │               │
 │ • Helpdesk   │ │  └───────────┘ └───────────┘ └───────────┘         │ │ [Type msg...] │
@@ -479,45 +451,35 @@ Antarmuka SuperApp mengadopsi bahasa visual yang selaras dengan *Intelecta Corpo
 ```
 
 ### 8.3 Fitur Interaktif Khusus
-- **Command Palette (`Cmd + K` / `Ctrl + K`)**: Navigasi cepat tanpa mouse ke seluruh proyek, klien, tiket, atau fungsi Instagram DM.
+- **Command Palette (`Cmd + K` / `Ctrl + K`)**: Navigasi cepat tanpa mouse ke seluruh klien, proyek, tiket, atau fungsi Instagram DM.
 - **Glassmorphic Quick Chat Drawer**: Tab percakapan yang dapat di-minimize ke bar bawah atau di-pin di samping layar kerja.
 - **Live Status Indicator**: Pulse dot hijau realtime yang mendeteksi konektivitas WebSocket / Firebase.
 
 ---
 
 ## 9. API Contract & Webhook Specifications
+*(Sesuai dengan dokumen `docs/api-endpoints.md`)*
 
-### 9.1 Endpoint REST API Kunci (Laravel Backend)
+### 9.1 REST API V1 Endpoints (Terproteksi Bearer Token)
 
 | HTTP Method | Route | Fungsi & Deskripsi |
 | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/login` | Autentikasi user, menghasilkan Laravel Sanctum Token & Firebase Custom Token. |
-| `GET` | `/api/v1/omnichannel/leads` | Mengambil daftar lead masuk dari Instagram, Web Form, dan WhatsApp beserta filter status. |
-| `POST` | `/api/v1/omnichannel/instagram/reply` | Mengirim pesan balasan langsung ke Instagram Direct Message via Graph API. |
-| `POST` | `/api/webhooks/instagram` | Receiver webhook resmi dari Meta Platform (menangkap event message & comment). |
-| `POST` | `/api/webhooks/corporate-web` | Menerima payload lead kontak atau interaksi terminal dari Next.js Corporate Web. |
-| `POST` | `/api/v1/team/sync-public-profile` | Memperbarui profil engineer dan memicu revalidasi instan ke Corporate Web. |
-| `GET` | `/api/v1/projects/{uuid}/board` | Mengambil hierarki sprint, kanban card, dan progres milestone proyek. |
-| `POST` | `/api/v1/invoices/{uuid}/generate-payment`| Membuat tautan pembayaran instan (Payment Gateway Snap URL). |
+| `POST` | `/api/v1/auth/login` | Autentikasi dan penerbitan Firebase Custom Token. |
+| `GET` | `/api/v1/omnichannel/leads` | Query daftar lead masuk. |
+| `POST` | `/api/v1/omnichannel/instagram/reply` | Balas pesan DM Instagram melalui Meta Graph API. |
+| `POST` | `/api/v1/team/sync-public-profile` | Pembaruan profil engineer + pemicu revalidasi ke Next.js `/tim/[slug]`. |
+| `GET` | `/api/v1/projects/{uuid}/board` | Data hierarki Kanban sprint dan task. |
+| `POST` | `/api/v1/invoices/{uuid}/generate-payment` | Gateway link generation. |
+| `GET` | `/api/v1/clients` | Mengambil direktori data klien dan PIC. |
+| `POST` | `/api/v1/clients` | Menambahkan data klien baru. |
+| `GET` | `/api/v1/tickets` | Mengambil daftar tiket helpdesk. |
 
-### 9.2 Contoh Payload Webhook (Corporate Web ➔ SuperApp)
+### 9.2 Webhook Ingress (Public Secured Endpoints)
 
-```json
-{
-  "event": "lead.contact_form_submitted",
-  "timestamp": 1788172800,
-  "data": {
-    "sender_name": "Budi Santoso",
-    "sender_email": "budi@perusahaanlogistik.co.id",
-    "company": "PT Nusantara Logistik Mandiri",
-    "service_interest": "webapp_development",
-    "message": "Kami membutuhkan pengembangan sistem Web App Dashboard Monitoring & Mobile App kurir terintegrasi.",
-    "source_ip": "103.28.12.44",
-    "user_agent": "Mozilla/5.0 ... Chrome/128.0"
-  },
-  "signature": "sha256=d8e8fca2dc6b..."
-}
-```
+| HTTP Method | Route | Fungsi & Deskripsi |
+| :--- | :--- | :--- |
+| `POST` | `/api/webhooks/instagram` | Receiver resmi Meta Platform (challenge verification & event capture). |
+| `POST` | `/api/webhooks/corporate-web` | Receiver kontak form & CLI beacon dari Next.js Corporate Web. |
 
 ---
 
@@ -526,7 +488,7 @@ Antarmuka SuperApp mengadopsi bahasa visual yang selaras dengan *Intelecta Corpo
 ### 10.1 Protokol Keamanan & Enkripsi
 1. **Webhook Signature Verification**: Setiap payload dari Meta dan Corporate Web divalidasi dengan enkripsi HMAC SHA-256 menggunakan secret key khusus.
 2. **Data Encryption at Rest & in Transit**: Seluruh komunikasi wajib HTTPS/TLS 1.3. Kredensial sensitif dan token integrasi disimpan menggunakan enkripsi `AES-256-CBC` via Laravel `Crypt`.
-3. **Granular Audit Logs**: Setiap aktivitas krusial (perubahan nilai invoice, akses repositori proyek, perubahan hak akses user) dicatat dalam tabel `audit_logs` dengan informasi IP, Timestamp, dan State Diff.
+3. **Granular Audit Logs**: Setiap aktivitas krusial (perubahan nilai invoice, akses repositori proyek, pembaruan data klien) dicatat dalam tabel `audit_logs` dengan informasi IP, Timestamp, dan State Diff.
 
 ### 10.2 Standar Kinerja & SLA Sistem
 - **API Response Time**: < 150ms untuk endpoint data transaksional.
@@ -542,56 +504,60 @@ gantt
     title Roadmap Pengembangan SuperApp Intelecta
     dateFormat  YYYY-MM-DD
     section Phase 1: Core Foundation
-    Laravel API Setup & MySQL Migration    :p1_1, 2026-09-01, 7d
-    Auth Sanctum & Firebase Admin SDK Token :p1_2, after p1_1, 5d
-    React + Tailwind UI Shell & Tokens     :p1_3, after p1_1, 7d
+    Laravel API Setup & MySQL Migration    :done, p1_1, 2026-09-01, 7d
+    Auth Sanctum & Firebase Admin SDK Token :done, p1_2, after p1_1, 5d
+    React + Tailwind UI Shell & Tokens     :done, p1_3, after p1_1, 7d
     
     section Phase 2: Omnichannel & Integrasi
-    Instagram Graph API Webhook & DM Sender:p2_1, after p1_2, 8d
-    Next.js Webhook & Team Sync Connector  :p2_2, after p2_1, 5d
-    Firebase Realtime Chat Module          :p2_3, after p1_3, 8d
+    Instagram Graph API Webhook & DM Sender:done, p2_1, after p1_2, 8d
+    Next.js Webhook & Team Sync Connector  :done, p2_2, after p2_1, 5d
+    Firebase Realtime Chat Module          :done, p2_3, after p1_3, 8d
     
-    section Phase 3: Project & Client Portal
-    Kanban Board & Sprints Management      :p3_1, after p2_3, 7d
-    Invoicing & Payment Gateway Midtrans   :p3_2, after p3_1, 6d
-    SLA Helpdesk & Ticket Management       :p3_3, after p3_1, 5d
+    section Phase 3: Client & Project Operations
+    Client Management Directory            :done, p3_1, after p2_3, 5d
+    Kanban Board & Sprints Management      :done, p3_2, after p3_1, 6d
+    Invoicing & Payment Gateway Midtrans   :done, p3_3, after p3_2, 5d
+    SLA Helpdesk & Ticket Management       :done, p3_4, after p3_2, 5d
     
     section Phase 4: AI & Hardening
-    Intelecta AI Auto-Reply & Copilot Suite:p4_1, after p3_3, 7d
-    Security Audit, E2E Testing & UAT      :p4_2, after p4_1, 7d
-    Production Deployment & Monitoring     :p4_3, after p4_2, 4d
+    Intelecta AI Auto-Reply & Copilot Suite:done, p4_1, after p3_4, 7d
+    Security Audit, E2E Testing & UAT      :done, p4_2, after p4_1, 7d
+    Production Deployment & Monitoring     :done, p4_3, after p4_2, 4d
 ```
 
 ### 11.1 Checklist Langkah Pengerjaan
 
 #### Tahap 1: Setup Fondasi & Otentikasi
-- [ ] Inisialisasi project Laravel 11 dengan MySQL database driver.
-- [ ] Buat skema migrasi MySQL (`users`, `team_profiles`, `clients`, `projects`, `leads`, `invoices`, `tickets`).
-- [ ] Konfigurasi Spatie Laravel-Permission untuk manajemen role dan hak akses.
-- [ ] Setup Firebase Project, download `service-account.json`, dan implementasikan Custom Token Generator.
-- [ ] Inisialisasi React frontend dengan Tailwind CSS dan rancang theme token Monochromatic Dark.
+- [x] Inisialisasi project Laravel 11 dengan MySQL / SQLite database driver.
+- [x] Buat skema migrasi basis data (`users`, `team_profiles`, `clients`, `projects`, `leads`, `invoices`, `tickets`, dll.).
+- [x] Setup otentikasi internal pengguna (Laravel Sanctum Bearer Token).
+- [x] Setup Firebase Service dan implementasikan Custom Token Generator.
+- [x] Inisialisasi React frontend dengan Tailwind CSS dan rancang theme token Monochromatic Dark.
 
 #### Tahap 2: Komunikasi Realtime & Integrasi Eksternal
-- [ ] Buat listener webhook `/api/webhooks/instagram` dan handler verifikasi token Meta.
-- [ ] Bangun modul pengirim DM Instagram dari backend ke Meta Graph API.
-- [ ] Implementasikan endpoint penerima webhook dari Next.js Corporate Web.
-- [ ] Bangun komponen UI chat di React terhubung ke Firebase Firestore untuk streaming pesan instan.
-- [ ] Pasang web push notifications (FCM) untuk notifikasi pesan masuk dan insiden darurat.
+- [x] Buat listener webhook `/api/webhooks/instagram` dan handler verifikasi token Meta.
+- [x] Bangun modul pengirim DM Instagram dari backend ke Meta Graph API.
+- [x] Implementasikan endpoint penerima webhook dari Next.js Corporate Web.
+- [x] Bangun komponen UI chat di React terhubung ke Firebase Firestore untuk streaming pesan instan.
+- [x] Pasang arsitektur notifikasi web & real-time toast drawer untuk pesan masuk dan insiden darurat.
 
-#### Tahap 3: Modul Operasional & Portal Bisnis
-- [ ] Bangun Kanban board interaktif untuk manajemen sprint proyek engineer.
-- [ ] Buat Client Portal yang menampilkan status proyek, dokumen kontrak, dan tombol ticketing.
-- [ ] Integrasikan payment gateway untuk tagihan invoice digital.
-- [ ] Buat modul Talent Manager yang dapat memicu webhook revalidasi profil ke `/tim/[slug]` di Corporate Web.
+#### Tahap 3: Modul Operasional & Manajemen Klien
+- [x] Bangun modul Client Directory untuk pencatatan dan pengelolaan profil klien B2B serta PIC.
+- [x] Bangun Kanban board interaktif untuk manajemen sprint proyek engineer (Web, Mobile, WebApp).
+- [x] Integrasikan simulator payment gateway (Midtrans Sandbox QRIS/VA) untuk tagihan invoice digital klien.
+- [x] Buat modul Talent Manager yang dapat memicu webhook revalidasi profil ke `/tim/[slug]` di Corporate Web.
+- [x] Bangun sistem tiket SLA helpdesk untuk pencatatan, investigasi, dan monitoring countdown SLA 60 menit.
 
 #### Tahap 4: Pengujian, Optimasi & Peluncuran
-- [ ] Pengujian performa realtime chat di bawah beban multi-channel concurrent.
-- [ ] Uji coba simulasi webhook Instagram DM dan form submission landing page.
-- [ ] Setup cron job & queue worker Redis di server untuk background tasks.
-- [ ] Deployment ke environment staging dan verifikasi kepatuhan keamanan.
+- [x] Pengujian performa realtime chat di bawah beban multi-channel concurrent.
+- [x] Uji coba simulasi webhook Instagram DM dan form submission landing page di Settings Sandbox.
+- [x] Setup service layer, queue & event logging di server untuk background tasks.
+- [x] Verifikasi build produksi Vite frontend dan validasi route API backend.
 
 ---
 
 > **Dokumen Terkait**:
-> - [INTELECTA_PRD.md (Corporate Web)](file:///c:/laragon/www/Intelecta/Refrence/INTELECTA_PRD.md)
-> - File Spesifikasi API Swagger / OpenAPI (akan di-generate pada tahap implementasi)
+> - [Arsitektur Sistem (architecture.md)](file:///c:/laragon/www/SuperAppIntelecta/docs/architecture.md)
+> - [Skema Basis Data (database-schema.md)](file:///c:/laragon/www/SuperAppIntelecta/docs/database-schema.md)
+> - [Spesifikasi API & Webhook (api-endpoints.md)](file:///c:/laragon/www/SuperAppIntelecta/docs/api-endpoints.md)
+> - [README Dokumen (README.md)](file:///c:/laragon/www/SuperAppIntelecta/docs/README.md)

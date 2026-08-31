@@ -1,0 +1,51 @@
+# Dependencies
+/vendor
+/backend/vendor
+/node_modules
+/frontend/node_modules
+
+# Environment & Credentials
+.env
+.env.backup
+.env.production
+.env.local
+*.key
+auth.json
+
+# Build & Dist Outputs
+/public/build
+/public/hot
+/public/storage
+/frontend/dist
+/frontend/dist-ssr
+
+# Caches & Storage
+/backend/storage/*.key
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/storage/logs/*
+!/backend/storage/logs/.gitkeep
+/.phpunit.cache
+.phpunit.result.cache
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE & OS Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+/.fleet
+Homestead.json
+Homestead.yaml

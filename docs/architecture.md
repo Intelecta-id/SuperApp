@@ -1,6 +1,7 @@
 # Arsitektur Intelecta SuperApp
 
 ## 1. Ikhtisar Arsitektur
+
 Intelecta SuperApp menggunakan arsitektur **Decoupled Monorepo** yang memisahkan core backend API dan frontend SPA demi fleksibilitas skalabilitas dan kecepatan pengembangan.
 
 ```
@@ -28,6 +29,7 @@ SuperAppIntelecta/
 ```
 
 ## 2. Pola Integrasi
+
 1. **Autentikasi**: Laravel Sanctum mengelola stateful / token-based auth, sekaligus berinteraksi dengan Firebase Admin SDK untuk men-generate Custom Token.
 2. **Realtime Engine**: Frontend menggunakan Firebase Client SDK untuk mendengarkan stream chat Firestore secara sub-100ms.
 3. **Omnichannel Ingestion**: Webhook receiver di Laravel memproses pesan Meta Graph API (Instagram DM) dan Form Kontak Corporate Web secara asinkronus via queue.
