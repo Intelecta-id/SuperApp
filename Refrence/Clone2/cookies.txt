@@ -1,5 +1,0 @@
-# HTTrack Website Copier Cookie File
-# This file format is compatible with Netscape cookies
-www.aardvarkbookclub.com	TRUE	/	FALSE	1999999999	_cfuvid	mdn2DtfH1XEZqbOjnjDM9C82plG2DYbzZ7YFQK.l.sk-1787056776.1591961-1.0.1.1-urNlIc1gHEDWIdotlJVAHH6jBSA6AyKCA2YaQxZL.Qc
-www.aardvarkbookclub.com	TRUE	/	FALSE	1999999999	SameSite	None
-
