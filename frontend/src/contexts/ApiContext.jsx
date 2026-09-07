@@ -1,495 +1,655 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import apiClient from '../services/api';
-import {
-  mockClients,
-  mockProjects,
-  mockTasks,
-  mockLeads,
-  mockInvoices,
-  mockTickets,
-  mockTeam,
-} from '../services/mockData';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useNotification } from './NotificationContext';
 
-const ApiContext = createContext(null);
+const defaultApiContext = {
+  clients: [],
+  projects: [],
+  tasks: [],
+  leads: [],
+  invoices: [],
+  tickets: [],
+  team: [],
+  loading: false,
+  isLiveApiConnected: false,
+  refreshAllData: async () => {},
+  addClient: async () => {},
+  updateClient: async () => {},
+  deleteClient: async () => {},
+  addProject: async () => {},
+  updateProject: async () => {},
+  addTask: async () => {},
+  updateTaskStatus: async () => {},
+  deleteTask: async () => {},
+  addLead: async () => {},
+  updateLeadStatus: async () => {},
+  convertLeadToProject: async () => {},
+  replyInstagram: async () => {},
+  addInvoice: async () => {},
+  updateInvoiceStatus: async () => {},
+  generatePaymentLink: async () => {},
+  markInvoicePaid: async () => {},
+  addTicket: async () => {},
+  updateTicket: async () => {},
+  updateTicketStatus: async () => {},
+  addTicketReply: async () => {},
+  addTeamMember: async () => {},
+  updateTeamMember: async () => {},
+  syncTeamProfile: async () => {},
+};
+
+const ApiContext = createContext(defaultApiContext);
+
+export const useApi = () => {
+  const context = useContext(ApiContext);
+  return context || defaultApiContext;
+};
 
 export const ApiProvider = ({ children }) => {
   const { addToast } = useNotification();
 
-  const [clients, setClients] = useState(mockClients);
-  const [projects, setProjects] = useState(mockProjects);
-  const [tasks, setTasks] = useState(mockTasks);
-  const [leads, setLeads] = useState(mockLeads);
-  const [invoices, setInvoices] = useState(mockInvoices);
-  const [tickets, setTickets] = useState(mockTickets);
-  const [team, setTeam] = useState(mockTeam);
-  const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [team, setTeam] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isLiveApiConnected, setIsLiveApiConnected] = useState(false);
 
-  // Fetch initial data from Laravel REST API
+  // 1. Fetch initial live data from Supabase tables
   const refreshAllData = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const [resClients, resProjects, resLeads, resInvoices, resTickets, resTeam] = await Promise.allSettled([
-        apiClient.get('/clients'),
-        apiClient.get('/projects'),
-        apiClient.get('/omnichannel/leads'),
-        apiClient.get('/invoices'),
-        apiClient.get('/tickets'),
-        apiClient.get('/team'),
+
+      const [
+        resClients,
+        resProjects,
+        resTasks,
+        resLeads,
+        resInvoices,
+        resTickets,
+        resTeam
+      ] = await Promise.allSettled([
+        supabase.from('clients').select('*').order('created_at', { ascending: false }),
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }),
+        supabase.from('leads').select('*').order('created_at', { ascending: false }),
+        supabase.from('invoices').select('*').order('created_at', { ascending: false }),
+        supabase.from('tickets').select('*').order('created_at', { ascending: false }),
+        supabase.from('team_profiles').select('*').order('order_index', { ascending: true }),
       ]);
 
-      let anySuccess = false;
+      let connected = false;
 
-      if (resClients.status === 'fulfilled' && resClients.value.data?.data) {
-        setClients(resClients.value.data.data);
-        anySuccess = true;
+      if (resClients.status === 'fulfilled' && !resClients.value.error) {
+        setClients(resClients.value.data || []);
+        connected = true;
       }
-      if (resProjects.status === 'fulfilled' && resProjects.value.data?.data) {
-        setProjects(resProjects.value.data.data);
-        anySuccess = true;
+      if (resProjects.status === 'fulfilled' && !resProjects.value.error) {
+        setProjects(resProjects.value.data || []);
+        connected = true;
       }
-      if (resLeads.status === 'fulfilled' && resLeads.value.data?.data) {
-        setLeads(resLeads.value.data.data);
-        anySuccess = true;
+      if (resTasks.status === 'fulfilled' && !resTasks.value.error) {
+        setTasks(resTasks.value.data || []);
+        connected = true;
       }
-      if (resInvoices.status === 'fulfilled' && resInvoices.value.data?.data) {
-        setInvoices(resInvoices.value.data.data);
-        anySuccess = true;
+      if (resLeads.status === 'fulfilled' && !resLeads.value.error) {
+        setLeads(resLeads.value.data || []);
+        connected = true;
       }
-      if (resTickets.status === 'fulfilled' && resTickets.value.data?.data) {
-        setTickets(resTickets.value.data.data);
-        anySuccess = true;
+      if (resInvoices.status === 'fulfilled' && !resInvoices.value.error) {
+        setInvoices(resInvoices.value.data || []);
+        connected = true;
       }
-      if (resTeam.status === 'fulfilled' && resTeam.value.data?.data) {
-        setTeam(resTeam.value.data.data);
-        anySuccess = true;
+      if (resTickets.status === 'fulfilled' && !resTickets.value.error) {
+        setTickets(resTickets.value.data || []);
+        connected = true;
+      }
+      if (resTeam.status === 'fulfilled' && !resTeam.value.error) {
+        setTeam(resTeam.value.data || []);
+        connected = true;
       }
 
-      setIsLiveApiConnected(anySuccess);
+      setIsLiveApiConnected(connected);
     } catch (err) {
-      console.warn('Live API sync failed, operating with active local repository:', err.message);
+      console.error('Error fetching live data from Supabase:', err.message);
       setIsLiveApiConnected(false);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // 2. Initial mount & Realtime subscription
   useEffect(() => {
     refreshAllData();
+
+    if (!isSupabaseConfigured || !supabase) return;
+
+    // Realtime channel listener across core tables
+    const dbChangesChannel = supabase
+      .channel('superapp-live-db')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => {
+          supabase.from('tasks').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setTasks(data); });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          supabase.from('leads').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setLeads(data); });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => {
+          supabase.from('tickets').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setTickets(data); });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients' },
+        () => {
+          supabase.from('clients').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setClients(data); });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => {
+          supabase.from('projects').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setProjects(data); });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'invoices' },
+        () => {
+          supabase.from('invoices').select('*').order('created_at', { ascending: false })
+            .then(({ data }) => { if (data) setInvoices(data); });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(dbChangesChannel);
+    };
   }, [refreshAllData]);
 
-  // Clients Operations
+  // 3. Client Operations
   const addClient = async (clientData) => {
     try {
-      const res = await apiClient.post('/clients', clientData);
-      const newClient = res.data?.data;
-      setClients((prev) => [newClient, ...prev]);
-      addToast({ type: 'success', title: 'Klien Ditambahkan', message: `${newClient.company_name} berhasil disimpan.` });
-      return newClient;
-    } catch (err) {
-      // Local optimistic fallback
-      const newClient = {
-        id: Date.now(),
-        uuid: 'cl-' + Math.random().toString(36).substr(2, 6),
-        ...clientData,
-        projects_count: 0,
-        invoices_count: 0,
-        tickets_count: 0,
-        total_contract_value: 0,
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const payload = {
+        company_name: clientData.company_name || clientData.name,
+        pic_name: clientData.pic_name || clientData.pic || 'PIC',
+        email: clientData.email || '',
+        phone: clientData.phone || '',
+        status: clientData.status || 'active',
+        tier: clientData.tier || 'standard',
+        contract_value: Number(clientData.contract_value || clientData.total_contract_value || 0),
+        notes: clientData.notes || '',
+        avatar_url: clientData.avatar_url || '',
       };
-      setClients((prev) => [newClient, ...prev]);
-      addToast({ type: 'success', title: 'Klien Ditambahkan (Lokal)', message: `${newClient.company_name} berhasil disimpan.` });
-      return newClient;
+
+      const { data, error } = await supabase.from('clients').insert(payload).select().single();
+      if (error) throw error;
+
+      setClients((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Klien Tersimpan', message: `${data.company_name} berhasil ditambahkan ke database.` });
+      return data;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Menyimpan Klien', message: err.message });
+      throw err;
     }
   };
 
   const updateClient = async (id, clientData) => {
     try {
-      const res = await apiClient.put(`/clients/${id}`, clientData);
-      const updated = res.data?.data;
-      setClients((prev) => prev.map((c) => (c.id === id || c.uuid === id ? updated : c)));
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const { data, error } = await supabase.from('clients').update(clientData).eq('id', id).select().single();
+      if (error) throw error;
+
+      setClients((prev) => prev.map((c) => (c.id === id ? data : c)));
       addToast({ type: 'success', title: 'Klien Diperbarui', message: 'Data klien berhasil disimpan.' });
-      return updated;
+      return data;
     } catch (err) {
-      setClients((prev) => prev.map((c) => (c.id === id || c.uuid === id ? { ...c, ...clientData } : c)));
-      addToast({ type: 'success', title: 'Klien Diperbarui', message: 'Data klien berhasil diperbarui.' });
+      addToast({ type: 'error', title: 'Gagal Memperbarui Klien', message: err.message });
+      throw err;
     }
   };
 
   const deleteClient = async (id) => {
     try {
-      await apiClient.delete(`/clients/${id}`);
-    } catch (e) {
-      // ignore
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const { error } = await supabase.from('clients').delete().eq('id', id);
+      if (error) throw error;
+
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      addToast({ type: 'success', title: 'Klien Dihapus', message: 'Data klien telah dihapus dari database.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Menghapus Klien', message: err.message });
+      throw err;
     }
-    setClients((prev) => prev.filter((c) => c.id !== id && c.uuid !== id));
-    addToast({ type: 'info', title: 'Klien Dihapus', message: 'Klien berhasil dihapus dari direktori.' });
   };
 
-  // Projects Operations
+  // 4. Project Operations
   const addProject = async (projectData) => {
     try {
-      const res = await apiClient.post('/projects', projectData);
-      const newProj = res.data?.data;
-      setProjects((prev) => [newProj, ...prev]);
-      addToast({ type: 'success', title: 'Proyek Dibuat', message: `${newProj.title} berhasil didaftarkan.` });
-      return newProj;
-    } catch (err) {
-      const client = clients.find((c) => c.id === Number(projectData.client_id));
-      const newProj = {
-        id: Date.now(),
-        uuid: 'proj-' + (projectData.project_code || 'INTL-' + Date.now()),
-        client_id: projectData.client_id,
-        client: client || { company_name: 'Klien Korporat' },
-        project_code: projectData.project_code || 'INTL-2026-' + Math.floor(100 + Math.random() * 900),
-        title: projectData.title,
-        description: projectData.description,
-        category: projectData.category,
-        status: projectData.status || 'scoping',
-        contract_value: Number(projectData.contract_value) || 0,
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const slug = projectData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
+      const payload = {
+        name: projectData.name,
+        slug,
+        client_id: projectData.client_id || null,
+        service_type: projectData.service_type || 'web_dev',
+        status: projectData.status || 'in_progress',
+        progress: Number(projectData.progress || 0),
+        budget: Number(projectData.budget || 0),
         start_date: projectData.start_date || new Date().toISOString().split('T')[0],
-        target_completion_date: projectData.target_completion_date,
-        git_repository_url: projectData.git_repository_url,
-        staging_url: projectData.staging_url,
-        production_url: projectData.production_url,
-        is_featured_case_study: projectData.is_featured_case_study || false,
-        members: [{ id: 1, user: mockCurrentUser, role_in_project: 'Lead' }],
+        deadline: projectData.deadline || null,
+        description: projectData.description || '',
+        repository_url: projectData.repository_url || '',
+        live_url: projectData.live_url || '',
       };
-      setProjects((prev) => [newProj, ...prev]);
-      addToast({ type: 'success', title: 'Proyek Dibuat', message: `${newProj.title} berhasil didaftarkan.` });
-      return newProj;
-    }
-  };
 
-  // Kanban Tasks Operations
-  const updateTaskStatus = async (taskId, newStatus) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId || t.uuid === taskId ? { ...t, status: newStatus } : t))
-    );
-    try {
-      await apiClient.patch(`/tasks/${taskId}/status`, { status: newStatus });
+      const { data, error } = await supabase.from('projects').insert(payload).select().single();
+      if (error) throw error;
+
+      setProjects((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Proyek Dibuat', message: `${data.name} berhasil disimpan di database.` });
+      return data;
     } catch (err) {
-      // Optimistic update already performed
+      addToast({ type: 'error', title: 'Gagal Membuat Proyek', message: err.message });
+      throw err;
     }
   };
 
+  const updateProject = async (id, projectData) => {
+    try {
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const { data, error } = await supabase.from('projects').update(projectData).eq('id', id).select().single();
+      if (error) throw error;
+
+      setProjects((prev) => prev.map((p) => (p.id === id ? data : p)));
+      addToast({ type: 'success', title: 'Proyek Diperbarui', message: 'Data proyek berhasil diperbarui.' });
+      return data;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Memperbarui Proyek', message: err.message });
+      throw err;
+    }
+  };
+
+  // 5. Task Operations (Kanban Engine)
   const addTask = async (taskData) => {
-    const newTask = {
-      id: Date.now(),
-      uuid: 'tsk-' + Math.random().toString(36).substr(2, 6),
-      project_id: taskData.project_id || 1,
-      project_code: taskData.project_code || 'INTL-2026-008',
-      title: taskData.title,
-      description: taskData.description || '',
-      status: taskData.status || 'todo',
-      priority: taskData.priority || 'medium',
-      story_points: Number(taskData.story_points) || 3,
-      due_date: taskData.due_date,
-      assigned_to_user_id: taskData.assigned_to_user_id || 1,
-      assignee: team.find((u) => u.id === Number(taskData.assigned_to_user_id)) || mockCurrentUser,
-      order_position: tasks.length + 1,
-    };
-
-    setTasks((prev) => [...prev, newTask]);
-    addToast({ type: 'success', title: 'Task Ditambahkan', message: `Task "${newTask.title}" masuk ke sprint.` });
-
     try {
-      const projectUuid = projects.find((p) => p.id === taskData.project_id)?.uuid || 'proj-INTL-2026-008';
-      await apiClient.post(`/projects/${projectUuid}/tasks`, taskData);
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const payload = {
+        project_id: taskData.project_id || (projects[0]?.id || null),
+        sprint_id: taskData.sprint_id || null,
+        title: taskData.title,
+        description: taskData.description || '',
+        status: taskData.status || 'todo',
+        priority: taskData.priority || 'medium',
+        points: Number(taskData.points || 1),
+        due_date: taskData.due_date || null,
+      };
+
+      const { data, error } = await supabase.from('tasks').insert(payload).select().single();
+      if (error) throw error;
+
+      setTasks((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Task Ditambahkan', message: `Task "${data.title}" berhasil dibuat.` });
+      return data;
     } catch (err) {
-      // Handled optimistically
+      addToast({ type: 'error', title: 'Gagal Membuat Task', message: err.message });
+      throw err;
     }
-    return newTask;
   };
 
-  // Omnichannel Leads Operations
-  const addLead = async (leadData) => {
-    const newLead = {
-      id: Date.now(),
-      uuid: 'lead-' + Math.random().toString(36).substr(2, 6),
-      source: leadData.source || 'manual',
-      sender_name: leadData.sender_name,
-      sender_contact: leadData.sender_contact,
-      company_name: leadData.company_name,
-      subject_or_intent: leadData.subject_or_intent,
-      initial_message: leadData.initial_message,
-      status: 'new',
-      ai_sentiment_score: 0.75,
-      ai_suggested_reply: `Halo ${leadData.sender_name}, terima kasih telah menghubungi Intelecta Technology Solutions. Lead Consultant kami siap membantu kebutuhan sistem Anda.`,
-      created_at: new Date().toISOString(),
-    };
-
-    setLeads((prev) => [newLead, ...prev]);
-    addToast({ type: 'info', title: 'Lead Baru Masuk', message: `Pesan dari ${newLead.sender_name} (${newLead.source})` });
-
+  const updateTaskStatus = async (taskId, newStatus) => {
     try {
-      const res = await apiClient.post('/omnichannel/leads', leadData);
-      if (res.data?.data) {
-        setLeads((prev) => prev.map((l) => (l.id === newLead.id ? res.data.data : l)));
-      }
+      // Optimistic update
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
+
+      if (!isSupabaseConfigured || !supabase) return;
+
+      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+      if (error) throw error;
     } catch (err) {
-      // Local fallback
+      console.error('Failed to update task status:', err.message);
+      refreshAllData();
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    try {
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      if (!isSupabaseConfigured || !supabase) return;
+      await supabase.from('tasks').delete().eq('id', taskId);
+      addToast({ type: 'success', title: 'Task Dihapus', message: 'Task berhasil dihapus dari database.' });
+    } catch (err) {
+      console.error('Failed to delete task:', err.message);
+    }
+  };
+
+  // 6. Lead Operations (Omnichannel)
+  const addLead = async (leadData) => {
+    try {
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const payload = {
+        name: leadData.name,
+        email: leadData.email || '',
+        phone: leadData.phone || '',
+        company: leadData.company || '',
+        source: leadData.source || 'manual',
+        status: leadData.status || 'new',
+        estimated_value: Number(leadData.estimated_value || 0),
+        message: leadData.message || '',
+      };
+
+      const { data, error } = await supabase.from('leads').insert(payload).select().single();
+      if (error) throw error;
+
+      setLeads((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Lead Ditambahkan', message: `Lead dari ${data.name} berhasil disimpan.` });
+      return data;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Menyimpan Lead', message: err.message });
+      throw err;
     }
   };
 
   const updateLeadStatus = async (leadId, newStatus) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId || l.uuid === leadId ? { ...l, status: newStatus } : l))
-    );
     try {
-      await apiClient.put(`/omnichannel/leads/${leadId}`, { status: newStatus });
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
+      if (!isSupabaseConfigured || !supabase) return;
+      await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
+      addToast({ type: 'success', title: 'Status Diperbarui', message: `Status lead diubah ke ${newStatus}.` });
     } catch (err) {
-      // Handled
+      console.error('Failed to update lead status:', err.message);
     }
   };
 
-  const replyInstagram = async (leadId, replyMessage) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId || l.uuid === leadId ? { ...l, status: 'qualified' } : l))
-    );
-    addToast({ type: 'success', title: 'Pesan Terkirim', message: 'Balasan telah dikirim via Meta Graph API.' });
-    try {
-      await apiClient.post('/omnichannel/instagram/reply', { lead_id: leadId, message: replyMessage });
-    } catch (e) {
-      // Simulated
-    }
-  };
-
-  const convertLeadToProject = async (leadId, convertData) => {
-    const lead = leads.find((l) => l.id === leadId || l.uuid === leadId);
-    if (!lead) return;
-
-    // Create client
-    const newClient = await addClient({
-      company_name: convertData.company_name || lead.company_name || 'Klien Baru ' + lead.sender_name,
-      pic_name: convertData.pic_name || lead.sender_name,
-      pic_email: convertData.pic_email || (lead.sender_contact.includes('@') ? lead.sender_contact : 'client@intelecta.id'),
-      pic_phone: lead.sender_contact,
-      industry: 'Enterprise / Corporate',
-      notes: `Dikonversi dari lead #${lead.id} (${lead.source})`,
-    });
-
-    // Create project
-    const newProj = await addProject({
-      client_id: newClient.id,
-      title: convertData.project_title || `Proyek Solusi ${newClient.company_name}`,
-      category: convertData.category || 'webapp_development',
-      status: 'scoping',
-      contract_value: Number(convertData.contract_value) || 120000000,
-      description: lead.initial_message,
-    });
-
-    // Update lead
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId || l.uuid === leadId
-          ? { ...l, status: 'converted_to_project', converted_to_project_id: newProj.id }
-          : l
-      )
-    );
-
-    addToast({
-      type: 'success',
-      title: 'Lead Berhasil Dikonversi!',
-      message: `Telah dibuat Klien (${newClient.company_name}) & Proyek (${newProj.project_code}).`,
-    });
-  };
-
-  // Invoices Operations
+  // 7. Invoice Operations
   const addInvoice = async (invoiceData) => {
-    const client = clients.find((c) => c.id === Number(invoiceData.client_id));
-    const project = projects.find((p) => p.id === Number(invoiceData.project_id));
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const year = new Date().getFullYear();
-    const count = invoices.length + 1;
-    const invNumber = `INV/${year}/${month}/${String(count).padStart(4, '0')}`;
-
-    const amount = Number(invoiceData.amount) || 0;
-    const tax = Number(invoiceData.tax_amount) || amount * 0.11;
-    const totalPayable = amount + tax;
-
-    const newInv = {
-      id: Date.now(),
-      uuid: 'inv-' + Math.random().toString(36).substr(2, 6),
-      invoice_number: invNumber,
-      client_id: invoiceData.client_id,
-      client: client || { company_name: 'PT Klien' },
-      project_id: invoiceData.project_id || null,
-      project: project || null,
-      title: invoiceData.title,
-      amount,
-      tax_amount: tax,
-      total_payable: totalPayable,
-      due_date: invoiceData.due_date || new Date().toISOString().split('T')[0],
-      payment_status: 'unpaid',
-      notes: invoiceData.notes,
-    };
-
-    setInvoices((prev) => [newInv, ...prev]);
-    addToast({ type: 'success', title: 'Invoice Dibuat', message: `${newInv.invoice_number} berhasil di-generate.` });
-
     try {
-      await apiClient.post('/invoices', invoiceData);
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const invoiceNum = invoiceData.invoice_number || `INV/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`;
+      const payload = {
+        invoice_number: invoiceNum,
+        client_id: invoiceData.client_id || (clients[0]?.id || null),
+        project_id: invoiceData.project_id || (projects[0]?.id || null),
+        amount: Number(invoiceData.amount || 0),
+        status: invoiceData.status || 'draft',
+        issue_date: invoiceData.issue_date || new Date().toISOString().split('T')[0],
+        due_date: invoiceData.due_date || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        items: invoiceData.items || [{ description: 'Jasa Pengembangan Sistem', amount: Number(invoiceData.amount || 0) }],
+      };
+
+      const { data, error } = await supabase.from('invoices').insert(payload).select().single();
+      if (error) throw error;
+
+      setInvoices((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Invoice Diterbitkan', message: `Invoice #${data.invoice_number} berhasil dibuat.` });
+      return data;
     } catch (err) {
-      // Local
-    }
-    return newInv;
-  };
-
-  const generatePaymentLink = async (invoiceUuid) => {
-    const ref = 'MID-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-    const payUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${ref}`;
-
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.uuid === invoiceUuid || inv.id === invoiceUuid
-          ? { ...inv, payment_status: 'pending_gateway', payment_gateway_ref: ref, payment_url: payUrl }
-          : inv
-      )
-    );
-
-    addToast({ type: 'info', title: 'Payment Gateway Link', message: `Link bayar Midtrans siap: ${ref}` });
-
-    try {
-      await apiClient.post(`/invoices/${invoiceUuid}/generate-payment`);
-    } catch (e) {
-      // Local
-    }
-
-    return payUrl;
-  };
-
-  const markInvoicePaid = async (invoiceUuid) => {
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.uuid === invoiceUuid || inv.id === invoiceUuid
-          ? { ...inv, payment_status: 'paid', paid_at: new Date().toISOString() }
-          : inv
-      )
-    );
-    addToast({ type: 'success', title: 'Invoice Lunas', message: 'Status invoice telah diubah menjadi Paid.' });
-    try {
-      await apiClient.post(`/invoices/${invoiceUuid}/mark-paid`);
-    } catch (e) {
-      // Local
+      addToast({ type: 'error', title: 'Gagal Membuat Invoice', message: err.message });
+      throw err;
     }
   };
 
-  // Team Profiles & Corporate Web Sync
-  const syncTeamProfile = async (profileData) => {
-    setTeam((prev) =>
-      prev.map((member) =>
-        member.id === profileData.user_id
-          ? {
-              ...member,
-              team_profile: {
-                ...member.team_profile,
-                ...profileData,
-              },
-            }
-          : member
-      )
-    );
-
-    addToast({
-      type: 'success',
-      title: 'Profil Ter-Sync ke Corporate Web!',
-      message: `Next.js ISR revalidation terpemicu untuk /tim/${profileData.slug || 'engineer'}.`,
-    });
-
+  const updateInvoiceStatus = async (invoiceId, newStatus) => {
     try {
-      await apiClient.post('/team/sync-public-profile', profileData);
+      setInvoices((prev) => prev.map((i) => (i.id === invoiceId ? { ...i, status: newStatus } : i)));
+      if (!isSupabaseConfigured || !supabase) return;
+      await supabase.from('invoices').update({ status: newStatus }).eq('id', invoiceId);
+      addToast({ type: 'success', title: 'Invoice Diperbarui', message: `Status invoice diubah ke ${newStatus}.` });
     } catch (err) {
-      // Handled
+      console.error('Failed to update invoice status:', err.message);
     }
   };
 
-  // SLA Helpdesk Tickets Operations
+  // 8. Ticket Operations (Helpdesk SLA)
   const addTicket = async (ticketData) => {
-    const client = clients.find((c) => c.id === Number(ticketData.client_id));
-    const project = projects.find((p) => p.id === Number(ticketData.project_id));
-    const engineer = team.find((t) => t.id === Number(ticketData.assigned_engineer_id)) || mockCurrentUser;
-
-    const newTicket = {
-      id: Date.now(),
-      uuid: 'tck-' + Math.floor(1000 + Math.random() * 9000),
-      ticket_code: 'TCK-' + Math.floor(1000 + Math.random() * 9000),
-      client_id: ticketData.client_id,
-      client: client || { company_name: 'PT Klien' },
-      project_id: ticketData.project_id,
-      project: project || { title: 'Proyek Sistem' },
-      title: ticketData.title,
-      description: ticketData.description,
-      priority: ticketData.priority || 'medium',
-      status: 'open',
-      assigned_engineer_id: ticketData.assigned_engineer_id || 1,
-      assigned_engineer: engineer,
-      sla_due_at:
-        ticketData.priority === 'critical_sla_1hr'
-          ? new Date(Date.now() + 60 * 60 * 1000).toISOString()
-          : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString(),
-      replies: [],
-    };
-
-    setTickets((prev) => [newTicket, ...prev]);
-
-    if (ticketData.priority === 'critical_sla_1hr') {
-      addToast({
-        type: 'danger',
-        title: '🚨 CRITICAL P1 SLA TICKET',
-        message: `Tiket ${newTicket.ticket_code} membutuhkan respon teknis dalam 60 menit!`,
-        duration: 8000,
-      });
-    } else {
-      addToast({ type: 'success', title: 'Tiket Dibuat', message: `Tiket #${newTicket.ticket_code} terdaftar di Helpdesk.` });
-    }
-
     try {
-      await apiClient.post('/tickets', ticketData);
-    } catch (e) {
-      // Local
-    }
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
 
-    return newTicket;
+      const ticketNum = `TCK-${new Date().getFullYear()}-${Date.now().toString().slice(-3)}`;
+      const payload = {
+        ticket_number: ticketNum,
+        client_id: ticketData.client_id || (clients[0]?.id || null),
+        project_id: ticketData.project_id || (projects[0]?.id || null),
+        title: ticketData.title,
+        description: ticketData.description || '',
+        status: ticketData.status || 'open',
+        priority: ticketData.priority || 'medium',
+        sla_hours: ticketData.priority === 'critical' ? 4 : ticketData.priority === 'high' ? 12 : 24,
+      };
+
+      const { data, error } = await supabase.from('tickets').insert(payload).select().single();
+      if (error) throw error;
+
+      setTickets((prev) => [data, ...prev]);
+      addToast({ type: 'success', title: 'Tiket Insiden Dibuat', message: `Tiket #${data.ticket_number} berhasil diregistrasi.` });
+      return data;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Membuat Tiket', message: err.message });
+      throw err;
+    }
+  };
+
+  const updateTicketStatus = async (ticketId, newStatus) => {
+    try {
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+      if (!isSupabaseConfigured || !supabase) return;
+      await supabase.from('tickets').update({ status: newStatus }).eq('id', ticketId);
+      addToast({ type: 'success', title: 'Tiket Diperbarui', message: `Status tiket diubah ke ${newStatus}.` });
+    } catch (err) {
+      console.error('Failed to update ticket status:', err.message);
+    }
+  };
+
+  // 9. Team Profile Operations
+  const addTeamMember = async (memberData) => {
+    try {
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase not configured');
+
+      const slug = memberData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const payload = {
+        name: memberData.name,
+        slug,
+        role: memberData.role || 'Software Engineer',
+        bio: memberData.bio || '',
+        skills: memberData.skills || [],
+        github_url: memberData.github_url || '',
+        linkedin_url: memberData.linkedin_url || '',
+        avatar_url: memberData.avatar_url || '',
+        is_public: true,
+        order_index: team.length + 1,
+      };
+
+      const { data, error } = await supabase.from('team_profiles').insert(payload).select().single();
+      if (error) throw error;
+
+      setTeam((prev) => [...prev, data]);
+      addToast({ type: 'success', title: 'Talent Ditambahkan', message: `${data.name} berhasil disimpan ke database.` });
+      return data;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Menambah Talent', message: err.message });
+      throw err;
+    }
+  };
+
+  const updateTeamMember = async (id, updateData) => {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('team_profiles').update(updateData).eq('id', id);
+        if (error) throw error;
+      }
+      setTeam((prev) => prev.map((m) => (m.id === id ? { ...m, ...updateData } : m)));
+      addToast({ type: 'success', title: 'Talent Diperbarui', message: 'Data talent berhasil diperbarui.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Memperbarui Talent', message: err.message });
+      throw err;
+    }
+  };
+
+  const syncTeamProfile = async (profileData) => {
+    try {
+      const id = profileData.id || profileData.user_id;
+      const payload = {
+        name: profileData.name,
+        slug: profileData.slug,
+        role: profileData.role || profileData.job_title || 'Engineer',
+        bio: profileData.bio || profileData.bio_id || '',
+        skills: profileData.skills || profileData.skills_json || [],
+        github_url: profileData.github_url || profileData.github || '',
+        linkedin_url: profileData.linkedin_url || profileData.linkedin || '',
+        is_public: profileData.is_public ?? profileData.is_public_showcase ?? true,
+        updated_at: new Date().toISOString(),
+      };
+      if (isSupabaseConfigured && supabase) {
+        if (id) {
+          const { error } = await supabase.from('team_profiles').upsert({ id, ...payload });
+          if (error) {
+            console.warn('Upsert fallback to update:', error.message);
+            await supabase.from('team_profiles').update(payload).eq('id', id);
+          }
+        } else {
+          await supabase.from('team_profiles').insert([payload]);
+        }
+      }
+      setTeam((prev) => prev.map((m) => ((m.id === id || m.slug === profileData.slug) ? { ...m, ...payload, team_profile: { ...m.team_profile, ...payload } } : m)));
+      addToast({ type: 'success', title: 'Talent Disinkronkan', message: 'Profil talent berhasil disimpan ke database.' });
+      return payload;
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Sinkronisasi Talent', message: err.message });
+      throw err;
+    }
+  };
+
+  const convertLeadToProject = async (leadId, convertForm) => {
+    try {
+      const newClient = await addClient({
+        company_name: convertForm.company_name,
+        pic_name: convertForm.pic_name,
+        email: convertForm.pic_email,
+        status: 'active',
+        tier: 'standard',
+      });
+      const projectCode = `PRJ-${Date.now().toString().slice(-4)}`;
+      await addProject({
+        client_id: newClient.id,
+        project_code: projectCode,
+        title: convertForm.project_title,
+        category: convertForm.category,
+        contract_value: convertForm.contract_value,
+        status: 'scoping',
+      });
+      await updateLeadStatus(leadId, 'converted_to_project');
+      addToast({ type: 'success', title: 'Konversi Berhasil', message: 'Lead berhasil dikonversi ke Klien & Proyek baru.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Konversi Lead', message: err.message });
+    }
+  };
+
+  const replyInstagram = async (leadId, message) => {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('leads').update({ notes: message, updated_at: new Date().toISOString() }).eq('id', leadId);
+      }
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, notes: message } : l)));
+      addToast({ type: 'success', title: 'Balasan Terkirim', message: 'Pesan balasan berhasil dicatat.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Mengirim Balasan', message: err.message });
+    }
   };
 
   const updateTicket = async (ticketId, updateData) => {
-    setTickets((prev) =>
-      prev.map((t) => (t.id === ticketId || t.uuid === ticketId ? { ...t, ...updateData } : t))
-    );
-    addToast({ type: 'success', title: 'Tiket Diperbarui', message: 'Status investigasi tiket berhasil disimpan.' });
     try {
-      await apiClient.put(`/tickets/${ticketId}`, updateData);
-    } catch (e) {
-      // Local
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('tickets').update(updateData).eq('id', ticketId);
+      }
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, ...updateData } : t)));
+      addToast({ type: 'success', title: 'Tiket Diperbarui', message: 'Perubahan tiket berhasil disimpan.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Memperbarui Tiket', message: err.message });
     }
   };
 
-  const addTicketReply = async (ticketId, message, isInternalNote = false) => {
-    const newReply = {
-      id: Date.now(),
-      user: mockCurrentUser,
-      message,
-      is_internal_note: isInternalNote,
-      created_at: new Date().toISOString(),
-    };
-
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === ticketId || t.uuid === ticketId
-          ? { ...t, replies: [...(t.replies || []), newReply] }
-          : t
-      )
-    );
-
-    addToast({ type: 'info', title: 'Catatan Ditambahkan', message: isInternalNote ? 'Internal note tersimpan.' : 'Balasan terkirim ke tiket.' });
-
+  const addTicketReply = async (ticketId, message, isInternal = false) => {
     try {
-      await apiClient.post(`/tickets/${ticketId}/reply`, { message, is_internal_note: isInternalNote });
-    } catch (e) {
-      // Local
+      const newReply = {
+        id: 'rep-' + Date.now(),
+        ticket_id: ticketId,
+        message,
+        is_internal: isInternal,
+        created_at: new Date().toISOString(),
+        user: { name: 'Operator' },
+      };
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('ticket_replies').insert({
+          ticket_id: ticketId,
+          message,
+          is_internal: isInternal,
+        });
+      }
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === ticketId ? { ...t, replies: [...(t.replies || []), newReply] } : t
+        )
+      );
+      addToast({ type: 'success', title: 'Catatan Ditambahkan', message: 'Log investigasi berhasil disimpan.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Menambah Catatan', message: err.message });
+    }
+  };
+
+  const generatePaymentLink = async (invoiceId) => {
+    const snapUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/demo-${invoiceId}`;
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('invoices').update({ midtrans_snap_token: `token-${invoiceId}` }).eq('id', invoiceId);
+    }
+    addToast({ type: 'info', title: 'Link Pembayaran Dibuat', message: 'Link gateway sandbox siap dibagikan.' });
+    return snapUrl;
+  };
+
+  const markInvoicePaid = async (invoiceId) => {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('invoices').update({ payment_status: 'paid', updated_at: new Date().toISOString() }).eq('id', invoiceId);
+      }
+      setInvoices((prev) =>
+        prev.map((i) => (i.id === invoiceId ? { ...i, payment_status: 'paid' } : i))
+      );
+      addToast({ type: 'success', title: 'Invoice Lunas', message: 'Pembayaran invoice berhasil diverifikasi.' });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Gagal Memperbarui Status Invoice', message: err.message });
     }
   };
 
@@ -510,19 +670,25 @@ export const ApiProvider = ({ children }) => {
         updateClient,
         deleteClient,
         addProject,
-        updateTaskStatus,
+        updateProject,
         addTask,
+        updateTaskStatus,
+        deleteTask,
         addLead,
         updateLeadStatus,
-        replyInstagram,
         convertLeadToProject,
+        replyInstagram,
         addInvoice,
+        updateInvoiceStatus,
         generatePaymentLink,
         markInvoicePaid,
-        syncTeamProfile,
         addTicket,
         updateTicket,
+        updateTicketStatus,
         addTicketReply,
+        addTeamMember,
+        updateTeamMember,
+        syncTeamProfile,
       }}
     >
       {children}
@@ -530,4 +696,3 @@ export const ApiProvider = ({ children }) => {
   );
 };
 
-export const useApi = () => useContext(ApiContext);

@@ -5,15 +5,15 @@ import { ApiProvider } from './contexts/ApiContext';
 import { ChatProvider } from './contexts/ChatContext';
 import AppLayout from './components/layout/AppLayout';
 
-import DashboardPage from './pages/DashboardPage';
-import OmnichannelPage from './pages/OmnichannelPage';
-import ClientsPage from './pages/ClientsPage';
-import ProjectsPage from './pages/ProjectsPage';
-import FinancialPage from './pages/FinancialPage';
-import TeamPage from './pages/TeamPage';
-import HelpdeskPage from './pages/HelpdeskPage';
-import SettingsPage from './pages/SettingsPage';
-import LoginPage from './pages/LoginPage';
+import DashboardPage from './views/DashboardPage';
+import OmnichannelPage from './views/OmnichannelPage';
+import ClientsPage from './views/ClientsPage';
+import ProjectsPage from './views/ProjectsPage';
+import FinancialPage from './views/FinancialPage';
+import TeamPage from './views/TeamPage';
+import HelpdeskPage from './views/HelpdeskPage';
+import SettingsPage from './views/SettingsPage';
+import LoginPage from './views/LoginPage';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 

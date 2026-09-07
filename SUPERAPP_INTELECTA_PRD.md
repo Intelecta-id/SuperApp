@@ -38,25 +38,25 @@ Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibangun platf
 1. **Omnichannel Communication Center**: Penyatuan pesan masuk & notifikasi dari Instagram Direct Message (Meta Graph API), formulir kontak & terminal pada Corporate Web, WhatsApp Business, dan obrolan internal.
 2. **Client Management & Project Command Center**: Pengelolaan data direktori klien korporat B2B, pelacakan milestone & sprint proyek, deliverable, penagihan invoice, dan SLA ticketing.
 3. **Internal Project & Talent Management**: Alokasi engineer/konsultan, sprint tracking, otomatisasi sinkronisasi profil publik ke halaman `/tim/[slug]` pada Corporate Web.
-4. **Realtime Chat & Incident Escalation**: Komunikasi instan berbasis Firebase Realtime / Firestore & Push Notifications (FCM) untuk koordinasi cepat antar tim operasional.
+4. **Realtime Chat & Incident Escalation**: Komunikasi instan berbasis Supabase Realtime WebSockets & Push Alerts untuk koordinasi cepat antar tim operasional.
 
 ```
                     ┌────────────────────────────────────────┐
                     │      INTELECTA CORPORATE WEB (Next.js) │
                     │   (Showcase, Contact Form, /tim, CLI)  │
                     └───────────────────┬────────────────────┘
-                                        │ Webhook / REST Sync
+                                        │ Edge Function / Webhook
                                         ▼
 ┌──────────────────┐    ┌───────────────────────────────────┐
 │  INSTAGRAM /     │───▶│       INTELECTA SUPERAPP          │◀─── [ TIM / OPERATOR INTELECTA ]
-│  META GRAPH API  │    │     (Laravel + React + MySQL)     │     (Kelola Klien & Operasional)
+│  META GRAPH API  │    │      (Vercel SPA + Supabase)      │     (Kelola Klien & Operasional)
 └──────────────────┘    └─────────────────┬─────────────────┘
                                           │
                      ┌────────────────────┴────────────────────┐
                      ▼                                         ▼
         ┌─────────────────────────┐               ┌─────────────────────────┐
-        │  FIREBASE REALTIME SDK  │               │   CLIENTS & LEADS DATA  │
-        │ (Chat, Presence, FCM)   │               │(B2B Profiles, Contracts)│
+        │    SUPABASE REALTIME    │               │  POSTGRESQL & STORAGE   │
+        │(Chat Channels, Tickets) │               │(B2B Profiles, Contracts)│
         └─────────────────────────┘               └─────────────────────────┘
 ```
 
@@ -68,15 +68,14 @@ Seiring dengan peluncuran *Intelecta Corporate Web* (Next.js 15), dibangun platf
 
 | Layer | Teknologi | Versi | Peran & Justifikasi |
 | :--- | :--- | :--- | :--- |
-| **Backend Framework** | **Laravel** | 11.x (PHP 8.3+) | REST API Core, Business Logic, Webhooks Dispatcher, Queues (Redis), Auth (Sanctum/JWT) |
-| **Frontend Framework** | **React** + **Vite** | React 19 / 18 | SPA dinamis modern, state management terpusat, modularitas tinggi, fast build time |
-| **Styling & UI** | **Tailwind CSS** + **Shadcn/Radix UI** | Tailwind v3.4+ | Monochromatic dark theme tokens (`#030303`, `#0D0D11`), glassmorphism, konsistensi token dengan Corporate Web |
-| **Database** | **MySQL** | 8.0+ | Relational data integrity, ACID transactions untuk billing & kontrak, JSON fields untuk konfigurasi dinamis |
-| **Realtime Engine** | **Firebase SDK** | 10.x+ (Client & Admin) | Realtime chat channels, Firestore/Realtime DB sync, Firebase Cloud Messaging (FCM) push notifications |
-| **Queue & Cache** | **Redis** | 7.x | Asynchronous webhook processing (Instagram & Web), rate limiting, fast caching |
+| **Frontend & Hosting** | **React** + **Vite** / **Vercel** | React 19 / Vite 8 | High-performance SPA, instant global edge deployment di Vercel, client routing |
+| **Database & Auth** | **Supabase** (PostgreSQL) | Postgres 15+ | Relational data integrity, Row Level Security (RLS), Supabase Auth |
+| **Realtime Engine** | **Supabase Realtime** | 2.x | Realtime channel streaming (sub-100ms) untuk pesan chat, live updates tiket & task |
+| **Serverless Functions**| **Supabase Edge Functions** | Deno / TS | Webhook receivers (Instagram Meta Graph API, Web contact form), AI Copilot |
+| **Styling & UI** | **Tailwind CSS** | Tailwind v3.4+ | Monochromatic dark theme tokens (`#030303`, `#0D0D11`), glassmorphism |
 | **Icons & Animasi** | **Lucide React** + **Framer Motion** | — | Visual interface interaktif dan konsisten |
 
-### 2.2 Struktur Arsitektur Monorepo / Decoupled
+### 2.2 Struktur Arsitektur Monorepo Serverless
 *(Sesuai dengan dokumen `docs/architecture.md`)*
 
 ```

@@ -1,6 +1,4 @@
 # Dependencies
-/vendor
-/backend/vendor
 /node_modules
 /frontend/node_modules
 
@@ -9,25 +7,20 @@
 .env.backup
 .env.production
 .env.local
+*.local
 *.key
 auth.json
 
 # Build & Dist Outputs
-/public/build
-/public/hot
-/public/storage
+.next/
+/frontend/.next
 /frontend/dist
 /frontend/dist-ssr
+.vercel
 
-# Caches & Storage
-/backend/storage/*.key
-/backend/storage/framework/cache/*
-/backend/storage/framework/sessions/*
-/backend/storage/framework/views/*
-/backend/storage/logs/*
-!/backend/storage/logs/.gitkeep
-/.phpunit.cache
-.phpunit.result.cache
+# Supabase
+supabase/.temp
+supabase/.branches
 
 # Logs
 *.log
@@ -46,6 +39,4 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-/.fleet
-Homestead.json
-Homestead.yaml
+dev.bat
